@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Divu Bot — Trading Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e;
+    --green: #3fb950; --red: #f85149; --blue: #58a6ff; --amber: #d29922;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text);
+         font-family: -apple-system, "Segoe UI", Roboto, sans-serif; padding: 24px; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: center;
+           flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  h1 { font-size: 22px; }
+  h1 span { color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 8px; }
+  .pill { padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .pill.ok   { background: rgba(63,185,80,.15);  color: var(--green); }
+  .pill.bad  { background: rgba(248,81,73,.15);  color: var(--red); }
+  .pill.idle { background: rgba(210,153,34,.15); color: var(--amber); }
+  .grid { display: grid; gap: 16px; }
+  .stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 24px; }
+  .card { background: var(--card); border: 1px solid var(--border);
+          border-radius: 10px; padding: 16px; }
+  .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase;
+                 letter-spacing: .5px; margin-bottom: 6px; }
+  .stat .value { font-size: 24px; font-weight: 700; }
+  .pos { color: var(--green); } .neg { color: var(--red); }
+  section { margin-bottom: 24px; }
+  section h2 { font-size: 15px; color: var(--muted); margin-bottom: 10px;
+               text-transform: uppercase; letter-spacing: .5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px;
+       padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .sym { font-weight: 700; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 4px;
+         background: rgba(88,166,255,.12); color: var(--blue); white-space: nowrap; }
+  .tag.short { background: rgba(248,81,73,.12); color: var(--red); }
+  .tag.long  { background: rgba(63,185,80,.12); color: var(--green); }
+  .empty { color: var(--muted); padding: 18px; text-align: center; font-size: 14px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  canvas { max-height: 260px; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 8px; }
+  @media (max-width: 700px) { body { padding: 12px; } .hide-m { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📈 Divu Bot <span>paper trading dashboard</span></h1>
+    <div id="health" class="pill idle">checking…</div>
+  </header>
+
+  <div class="grid stats">
+    <div class="card stat"><div class="label">Realized P&amp;L</div><div class="value" id="s-pnl">—</div></div>
+    <div class="card stat"><div class="label">Win rate</div><div class="value" id="s-wr">—</div></div>
+    <div class="card stat"><div class="label">Profit factor</div><div class="value" id="s-pf">—</div></div>
+    <div class="card stat"><div class="label">Closed exits</div><div class="value" id="s-n">—</div></div>
+    <div class="card stat"><div class="label">Open positions</div><div class="value" id="s-open">—</div></div>
+    <div class="card stat"><div class="label">Signals today</div><div class="value" id="s-sig">—</div></div>
+  </div>
+
+  <section>
+    <h2>Open positions</h2>
+    <div class="card" id="positions"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section>
+    <h2>Equity curve (realized P&amp;L)</h2>
+    <div class="card"><canvas id="equity"></canvas></div>
+  </section>
+
+  <section>
+    <h2>Trade history</h2>
+    <div class="card" id="history"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section>
+    <h2>Bot runs (GitHub Actions)</h2>
+    <div class="card" id="runs"><div class="empty">Loading…</div></div>
+  </section>
+
+  <footer id="updated"></footer>
+</div>
+
+<script>
+const REPO = "wellborntitan/Divu-Bot";
+const RAW  = `https://raw.githubusercontent.com/${REPO}/main/trading_bot/`;
+const fmt$ = v => (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString(undefined, {maximumFractionDigits: 2});
+const esc  = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function getJSON(url) {
+  try {
+    const r = await fetch(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now());
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+function renderPositions(posData) {
+  const el = document.getElementById("positions");
+  const positions = posData ? Object.values(posData) : [];
+  document.getElementById("s-open").textContent = positions.length;
+  if (!positions.length) { el.innerHTML = '<div class="empty">No open positions</div>'; return; }
+  el.innerHTML = `<table><tr><th>Symbol</th><th>Side</th><th class="hide-m">Strategy</th>
+    <th>Entry</th><th>Stop</th><th class="hide-m">TP1</th><th class="hide-m">TP2</th>
+    <th>Shares</th><th class="hide-m">Opened</th></tr>` +
+    positions.map(p => `<tr>
+      <td class="sym">${esc(p.symbol)}</td>
+      <td><span class="tag ${p.signal_type}">${esc(p.signal_type.toUpperCase())}</span></td>
+      <td class="hide-m"><span class="tag">${esc(p.strategy)}</span></td>
+      <td>$${p.entry}</td><td>$${p.stop}${p.breakeven_set ? ' <span class="muted">(BE)</span>' : ''}</td>
+      <td class="hide-m">$${p.tp1}${p.tp1_hit ? " ✅" : ""}</td>
+      <td class="hide-m">$${p.tp2}${p.tp2_hit ? " ✅" : ""}</td>
+      <td>${p.shares_remaining}/${p.shares_total}</td>
+      <td class="hide-m muted">${esc((p.opened_at || "").slice(0, 16).replace("T", " "))}</td>
+    </tr>`).join("") + "</table>";
+}
+
+function renderStatsAndHistory(log) {
+  const el = document.getElementById("history");
+  if (!log || !log.length) {
+    el.innerHTML = '<div class="empty">No trades logged yet — history starts with the next bot trade</div>';
+    return [];
+  }
+  const exits = log.filter(e => "pnl" in e);
+  const wins  = exits.filter(e => e.pnl > 0);
+  const gw = wins.reduce((s, e) => s + e.pnl, 0);
+  const gl = Math.abs(exits.filter(e => e.pnl < 0).reduce((s, e) => s + e.pnl, 0));
+  const total = exits.reduce((s, e) => s + e.pnl, 0);
+
+  const pnlEl = document.getElementById("s-pnl");
+  pnlEl.textContent = fmt$(total);
+  pnlEl.className = "value " + (total >= 0 ? "pos" : "neg");
+  document.getElementById("s-wr").textContent = exits.length ? Math.round(wins.length / exits.length * 100) + "%" : "—";
+  document.getElementById("s-pf").textContent = gl > 0 ? (gw / gl).toFixed(2) : (gw > 0 ? "∞" : "—");
+  document.getElementById("s-n").textContent  = exits.length;
+
+  const labels = {entry: "ENTRY", tp1: "TP1", tp2: "TP2", stop_loss: "STOP",
+                  closed_external: "CLOSED*"};
+  el.innerHTML = `<table><tr><th>Time</th><th>Symbol</th><th>Event</th>
+    <th class="hide-m">Strategy</th><th>Price</th><th>Shares</th><th>P&amp;L</th></tr>` +
+    log.slice(-60).reverse().map(e => `<tr>
+      <td class="muted">${esc((e.ts || "").slice(0, 16).replace("T", " "))}</td>
+      <td class="sym">${esc(e.symbol)}</td>
+      <td><span class="tag ${e.type === "stop_loss" ? "short" : (e.type === "entry" ? "" : "long")}">${labels[e.type] || esc(e.type)}</span></td>
+      <td class="hide-m muted">${esc(e.strategy || "")}</td>
+      <td>$${e.price ?? "—"}</td><td>${e.shares ?? "—"}</td>
+      <td class="${e.pnl > 0 ? "pos" : e.pnl < 0 ? "neg" : ""}">${"pnl" in e ? fmt$(e.pnl) : "—"}</td>
+    </tr>`).join("") + "</table>" +
+    '<div class="muted" style="padding:8px 10px">* closed while bot offline — P&amp;L estimated at stop price</div>';
+  return exits;
+}
+
+let chart;
+function renderEquity(exits) {
+  const ctx = document.getElementById("equity");
+  let cum = 0;
+  const pts = exits.map(e => ({x: (e.ts || "").slice(0, 10), y: (cum += e.pnl)}));
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { datasets: [{ data: pts, borderColor: "#58a6ff",
+            backgroundColor: "rgba(88,166,255,.08)", fill: true,
+            tension: .25, pointRadius: 2 }] },
+    options: { plugins: { legend: { display: false } },
+      scales: { x: { type: "category", grid: { color: "#21262d" }, ticks: { color: "#8b949e" } },
+                y: { grid: { color: "#21262d" }, ticks: { color: "#8b949e",
+                     callback: v => "$" + v.toLocaleString() } } } }
+  });
+}
+
+function renderRuns(data) {
+  const el = document.getElementById("runs");
+  const runs = data && data.workflow_runs ? data.workflow_runs.slice(0, 8) : [];
+  if (!runs.length) { el.innerHTML = '<div class="empty">No runs found</div>'; return; }
+
+  // Health pill: latest completed run
+  const latest = runs[0];
+  const h = document.getElementById("health");
+  if (latest.status === "in_progress" || latest.status === "queued") {
+    h.textContent = "● bot running"; h.className = "pill ok";
+  } else if (latest.conclusion === "success") {
+    h.textContent = "✓ last run OK"; h.className = "pill ok";
+  } else {
+    h.textContent = "✗ last run failed"; h.className = "pill bad";
+  }
+
+  el.innerHTML = `<table><tr><th>Workflow</th><th>Status</th><th class="hide-m">Started</th><th></th></tr>` +
+    runs.map(r => {
+      const s = r.status === "completed"
+        ? (r.conclusion === "success" ? '<span class="pos">✓ success</span>'
+                                      : `<span class="neg">✗ ${esc(r.conclusion)}</span>`)
+        : `<span style="color:var(--amber)">● ${esc(r.status)}</span>`;
+      return `<tr><td>${esc(r.name)}</td><td>${s}</td>
+        <td class="hide-m muted">${new Date(r.run_started_at).toLocaleString()}</td>
+        <td><a href="${r.html_url}" target="_blank" style="color:var(--blue)">log →</a></td></tr>`;
+    }).join("") + "</table>";
+}
+
+async function refresh() {
+  const [positions, signals, log, runs] = await Promise.all([
+    getJSON(RAW + "positions.json"),
+    getJSON(RAW + "signals_today.json"),
+    getJSON(RAW + "trade_log.json"),
+    getJSON(`https://api.github.com/repos/${REPO}/actions/runs?per_page=10`),
+  ]);
+  renderPositions(positions);
+  const today = new Date().toLocaleDateString("en-CA", {timeZone: "America/New_York"});
+  document.getElementById("s-sig").textContent =
+    (signals && signals.date === today) ? (signals.signals || []).length : 0;
+  const exits = renderStatsAndHistory(log);
+  renderEquity(exits);
+  renderRuns(runs);
+  document.getElementById("updated").textContent =
+    "Updated " + new Date().toLocaleTimeString() + " — refreshes every 2 min. Note: raw file data can lag ~5 min behind the bot (GitHub CDN cache).";
+}
+
+refresh();
+setInterval(refresh, 120000);
+</script>
+</body>
+</html>

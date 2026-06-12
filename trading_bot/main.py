@@ -130,7 +130,8 @@ def _git_sync_state(message: str = "chore: bot state update [skip ci]"):
         return subprocess.run(["git", "-C", str(repo), *args],
                               capture_output=True, text=True)
 
-    g("add", "trading_bot/positions.json", "trading_bot/signals_today.json")
+    g("add", "trading_bot/positions.json", "trading_bot/signals_today.json",
+      "trading_bot/trade_log.json")
     if g("diff", "--staged", "--quiet").returncode == 0:
         return  # nothing changed
     g("-c", "user.name=Trading Bot",

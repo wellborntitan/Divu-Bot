@@ -52,7 +52,7 @@ jobs:
         run: |
           git config user.name  "Trading Bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add trading_bot/positions.json trading_bot/signals_today.json
+          git add trading_bot/positions.json trading_bot/signals_today.json trading_bot/trade_log.json
           git diff --staged --quiet && echo "No position changes" && exit 0
           git commit -m "chore: positions after morning scan [skip ci]"
           # Retry push in case another workflow committed in parallel

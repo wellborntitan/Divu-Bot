@@ -26,6 +26,38 @@ logger = logging.getLogger(__name__)
 ET = pytz.timezone("America/New_York")
 
 POSITIONS_FILE = os.path.join(os.path.dirname(__file__), "positions.json")
+TRADE_LOG_FILE = os.path.join(os.path.dirname(__file__), "trade_log.json")
+
+
+def log_trade_event(event_type: str, symbol: str, data: dict):
+    """
+    Append an entry/exit event to trade_log.json.
+    This file is committed to GitHub and powers the web dashboard.
+    """
+    try:
+        log = []
+        if os.path.exists(TRADE_LOG_FILE):
+            with open(TRADE_LOG_FILE) as f:
+                content = f.read().strip()
+            if content:
+                log = json.loads(content)
+        log.append({
+            "ts":     datetime.now(ET).isoformat(),
+            "type":   event_type,
+            "symbol": symbol,
+            **data,
+        })
+        with open(TRADE_LOG_FILE, "w") as f:
+            json.dump(log[-1000:], f, indent=2)   # keep last 1000 events
+    except Exception as exc:
+        logger.error(f"[trade_log] {exc}")
+
+
+def _pnl(pos: dict, price: float, shares: int) -> float:
+    """Realized P&L for `shares` exited at `price`."""
+    if pos["signal_type"] == "short":
+        return round((pos["entry"] - price) * shares, 2)
+    return round((price - pos["entry"]) * shares, 2)
 
 
 def load_positions() -> dict:
@@ -121,6 +153,16 @@ def add_position(signal: dict, shares: int, dollar_risk: float,
     }
     save_positions(positions)
     logger.info(f"[position_add] {signal['symbol']} {shares} shares @ ${signal['entry']}")
+    log_trade_event("entry", signal["symbol"], {
+        "strategy":    signal["strategy"],
+        "signal_type": signal["signal_type"],
+        "price":       signal["entry"],
+        "stop":        signal["stop"],
+        "tp1":         signal["tp1"],
+        "tp2":         signal["tp2"],
+        "shares":      shares,
+        "dollar_risk": dollar_risk,
+    })
 
 
 def _stop_side(pos: dict) -> str:
@@ -188,6 +230,13 @@ def reconcile_positions(notifier=None) -> list[str]:
         cancel_order(pos.get("stop_order_id"))   # clean up dangling stop
         positions.pop(sym)
         removed.append(sym)
+        # P&L estimated at the stop price (most likely exit when closed offline)
+        log_trade_event("closed_external", sym, {
+            "strategy": pos["strategy"], "price": pos["stop"],
+            "shares": pos["shares_remaining"],
+            "pnl": _pnl(pos, pos["stop"], pos["shares_remaining"]),
+            "estimated": True,
+        })
         logger.warning(f"[reconcile] {sym} closed at broker (stop filled or "
                        f"manual close) — removed from tracking")
     if removed:
@@ -236,6 +285,10 @@ def check_all_positions(notifier) -> list[dict]:
             # and the stop re-fires every cycle.
             positions.pop(symbol, None)
             remove_position(symbol)
+            log_trade_event("stop_loss", symbol, {
+                "strategy": pos["strategy"], "price": price,
+                "shares": shares, "pnl": _pnl(pos, price, shares),
+            })
             event = {
                 "type": "stop_loss", "symbol": symbol, "price": price,
                 "entry": entry, "stop": stop, "pct_chg": pct_chg,
@@ -260,6 +313,10 @@ def check_all_positions(notifier) -> list[dict]:
             pos["stop"]          = entry
             pos["breakeven_set"] = True
             pos["stop_order_id"] = _place_protective_stop(pos)
+            log_trade_event("tp1", symbol, {
+                "strategy": pos["strategy"], "price": price,
+                "shares": trim, "pnl": _pnl(pos, price, trim),
+            })
             event = {
                 "type": "tp1", "symbol": symbol, "price": price,
                 "entry": entry, "tp1": tp1, "tp2": tp2, "pct_chg": pct_chg,
@@ -281,6 +338,10 @@ def check_all_positions(notifier) -> list[dict]:
             pos["shares_remaining"] = pos["shares_remaining"] - trim
             pos["stop_order_id"] = (_place_protective_stop(pos)
                                     if pos["shares_remaining"] > 0 else None)
+            log_trade_event("tp2", symbol, {
+                "strategy": pos["strategy"], "price": price,
+                "shares": trim, "pnl": _pnl(pos, price, trim),
+            })
             event = {
                 "type": "tp2", "symbol": symbol, "price": price,
                 "entry": entry, "tp2": tp2, "pct_chg": pct_chg,
