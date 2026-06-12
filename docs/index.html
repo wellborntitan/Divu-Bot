@@ -177,20 +177,50 @@ function renderEquity(exits) {
   });
 }
 
+function computeStage(runs) {
+  // Current time in ET, since all bot stages are defined in market time
+  const et  = new Date(new Date().toLocaleString("en-US", {timeZone: "America/New_York"}));
+  const day = et.getDay();
+  const m   = et.getHours() * 60 + et.getMinutes();
+  const active = runs.find(r => r.status === "in_progress" || r.status === "queued");
+  const aname  = active ? active.name.split("(")[0].trim() : null;
+
+  if (day === 0 || day === 6)
+    return {txt: "Weekend — market closed", cls: "idle"};
+  if (m < 8 * 60 + 30)
+    return {txt: "Idle — bot wakes ~8:45 AM ET", cls: "idle"};
+  if (m < 9 * 60 + 15)
+    return active ? {txt: "● Pre-market — job waiting for the open", cls: "ok"}
+                  : {txt: "Pre-market — waiting for jobs to start", cls: "idle"};
+  if (m < 9 * 60 + 30)
+    return active ? {txt: `● Morning scan in progress (${aname})`, cls: "ok"}
+                  : {txt: "Morning scan window (9:15)", cls: "idle"};
+  if (m < 12 * 60 + 50)
+    return active ? {txt: "● LIVE — morning session, scanning every 5 min", cls: "ok"}
+                  : {txt: "⚠ Market open but NO active session job!", cls: "bad"};
+  if (m < 16 * 60)
+    return active ? {txt: "● LIVE — afternoon session, scanning every 5 min", cls: "ok"}
+                  : {txt: "⚠ Market open but NO active session job!", cls: "bad"};
+  if (m < 16 * 60 + 30)
+    return {txt: "Market closed — EOD summary due 4:15 PM", cls: "idle"};
+  return {txt: "✓ Done for today — next session tomorrow", cls: "idle"};
+}
+
 function renderRuns(data) {
   const el = document.getElementById("runs");
   const runs = data && data.workflow_runs ? data.workflow_runs.slice(0, 8) : [];
   if (!runs.length) { el.innerHTML = '<div class="empty">No runs found</div>'; return; }
 
-  // Health pill: latest completed run
-  const latest = runs[0];
+  // Health pill: time-aware stage + failure override
   const h = document.getElementById("health");
-  if (latest.status === "in_progress" || latest.status === "queued") {
-    h.textContent = "● bot running"; h.className = "pill ok";
-  } else if (latest.conclusion === "success") {
-    h.textContent = "✓ last run OK"; h.className = "pill ok";
+  const stage = computeStage(runs);
+  const latestDone = runs.find(r => r.status === "completed");
+  if (stage.cls !== "bad" && latestDone && latestDone.conclusion !== "success") {
+    h.textContent = `✗ last run failed (${latestDone.name.split("(")[0].trim()})`;
+    h.className = "pill bad";
   } else {
-    h.textContent = "✗ last run failed"; h.className = "pill bad";
+    h.textContent = stage.txt;
+    h.className = "pill " + stage.cls;
   }
 
   el.innerHTML = `<table><tr><th>Workflow</th><th>Status</th><th class="hide-m">Started</th><th></th></tr>` +
