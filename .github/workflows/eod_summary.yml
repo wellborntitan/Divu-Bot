@@ -1,0 +1,47 @@
+name: EOD Summary (4:15 PM ET)
+
+# GitHub cron is best-effort and often delayed 1-2h at peak UTC hours,
+# so we trigger ~45 min EARLY (19:30 UTC) and the job sleeps until the
+# exact target time (4:15 PM ET), computed DST-aware in the first step.
+on:
+  schedule:
+    - cron: '30 19 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read   # EOD summary doesn't write positions
+
+jobs:
+  eod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait until 4:15 PM ET
+        run: |
+          target=$(TZ=America/New_York date -d "today 16:15" +%s)
+          now=$(date +%s)
+          if [ "$now" -lt "$target" ]; then
+            echo "Sleeping $(( (target - now) / 60 )) min until 4:15 PM ET"
+            sleep $(( target - now ))
+          else
+            echo "Started $(( (now - target) / 60 )) min past target -- running immediately"
+          fi
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r trading_bot/requirements.txt
+
+      - name: Send EOD summary
+        working-directory: trading_bot
+        env:
+          ALPACA_API_KEY:       ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY:    ${{ secrets.ALPACA_SECRET_KEY }}
+          DISCORD_WEBHOOK_URL:  ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python run_job.py eod_summary

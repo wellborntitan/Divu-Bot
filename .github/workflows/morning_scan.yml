@@ -1,0 +1,61 @@
+name: Morning Scan (9:15 AM ET)
+
+# GitHub cron is best-effort and often delayed 1-2h at peak UTC hours,
+# so we trigger ~45 min EARLY (12:30 UTC) and the job sleeps until the
+# exact target time (9:15 AM ET), computed DST-aware in the first step.
+on:
+  schedule:
+    - cron: '30 12 * * 1-5'
+  workflow_dispatch:   # lets you trigger manually from the GitHub UI
+
+permissions:
+  contents: write      # needed to commit positions.json back
+
+jobs:
+  morning-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait until 9:15 AM ET
+        run: |
+          target=$(TZ=America/New_York date -d "today 09:15" +%s)
+          now=$(date +%s)
+          if [ "$now" -lt "$target" ]; then
+            echo "Sleeping $(( (target - now) / 60 )) min until 9:15 AM ET"
+            sleep $(( target - now ))
+          else
+            echo "Started $(( (now - target) / 60 )) min past target -- running immediately"
+          fi
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r trading_bot/requirements.txt
+
+      - name: Run morning scan
+        working-directory: trading_bot
+        env:
+          ALPACA_API_KEY:       ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY:    ${{ secrets.ALPACA_SECRET_KEY }}
+          DISCORD_WEBHOOK_URL:  ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python run_job.py morning_scan
+
+      - name: Commit updated positions
+        run: |
+          git config user.name  "Trading Bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add trading_bot/positions.json trading_bot/signals_today.json
+          git diff --staged --quiet && echo "No position changes" && exit 0
+          git commit -m "chore: positions after morning scan [skip ci]"
+          # Retry push in case another workflow committed in parallel
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push && break || sleep 5
+          done

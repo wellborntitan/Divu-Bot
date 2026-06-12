@@ -1,0 +1,28 @@
+# ── Secrets — NEVER commit these ──────────────────────────────────────────────
+.env
+*.env
+# Catch accidental hardcoded keys in any file
+# (grep for 'APCA-' or 'hooks/' patterns in CI to be safe)
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ── Bot runtime files ─────────────────────────────────────────────────────────
+bot.pid
+*.log
+backtest_cache.pkl
+
+# ── Generated reports (run locally, not needed in git) ───────────────────────
+Backtest_Results.xlsx
+Parameter_Optimization_Results.xlsx
+backtest_journal.txt
+bot_decisions.log
+positions.json.corrupt
+
+# NOTE: positions.json IS tracked — it persists paper trade state across
+#       GitHub Actions runs via commit-back on each workflow execution.

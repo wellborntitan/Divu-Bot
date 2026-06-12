@@ -1,0 +1,48 @@
+name: Market Session Loop (5-min scans + TP/SL)
+
+# One long-running job per half-day instead of hundreds of tiny cron runs
+# (GitHub cron is unreliable; a live loop is not).
+#   Morning cron  12:45 UTC (~8:45 ET in EDT) -> waits, loops 9:30-12:50 ET
+#   Afternoon cron 16:15 UTC (~12:15 ET)      -> loops 12:50-16:00 ET
+# Session windows are computed DST-aware inside session_loop().
+# GitHub's 6h job cap is why the day is split in two.
+on:
+  schedule:
+    - cron: '45 12 * * 1-5'   # morning session
+    - cron: '15 16 * * 1-5'   # afternoon session
+  workflow_dispatch:
+
+# Never run two sessions at once; the afternoon run queues until morning ends.
+concurrency:
+  group: market-session
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # session loop commits positions/signals back itself
+
+jobs:
+  session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r trading_bot/requirements.txt
+
+      - name: Run market session loop
+        working-directory: trading_bot
+        env:
+          ALPACA_API_KEY:       ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY:    ${{ secrets.ALPACA_SECRET_KEY }}
+          DISCORD_WEBHOOK_URL:  ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python run_job.py session_loop

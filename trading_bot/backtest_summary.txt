@@ -1,0 +1,25 @@
+========================================================================
+  BACKTEST OPTIMISATION REPORT
+========================================================================
+  Strategy                                Sigs    WR%     PF    TotR   AvgR     DD  Grade
+  --------------------------------------------------------------------
+  ✓ Continuation Model (PRIMARY)            59  50.8%   1.67  +15.94 +0.270  -3.76  A
+  ✗ Flat Top Base Breakout                  95  33.7%   1.16   +6.81 +0.072 -11.45  C
+  ~ Stage 2 Base Breakout                   16  43.8%   1.19   +1.07 +0.067  -3.14  B
+  ✓ Downtrend Trendline Reversal           389  52.2%   2.65  +28.59 +0.073  -2.62  A
+  ✗ Distribution Base Breakdown (SHORT)    791  33.9%   0.60 -251.29 -0.318 -282.80  C
+  ✓ Accumulation Base Breakout               4  50.0%   1.96   +0.96 +0.240   0.00  A
+
+  Grade key:  A = keep  |  B = raised vol threshold  |  C = disabled
+========================================================================
+  CHANGES APPLIED:
+
+    Continuation Model (PRIMARY)              ENABLED   min_vol≥1.5x  TP2 at 2.0R
+    Flat Top Base Breakout                    DISABLED  min_vol≥1.5x  TP2 at 2.0R
+    Stage 2 Base Breakout                     ENABLED   min_vol≥2.5x  TP2 at 1.5R
+    Downtrend Trendline Reversal              ENABLED   min_vol≥1.5x  TP2 at 1.5R
+    Distribution Base Breakdown (SHORT)       DISABLED  min_vol≥1.5x  TP2 at 1.5R
+    Accumulation Base Breakout                ENABLED   min_vol≥1.5x  TP2 at 2.0R
+
+  Bot has been patched. Restart START BOT.bat to activate.
+========================================================================

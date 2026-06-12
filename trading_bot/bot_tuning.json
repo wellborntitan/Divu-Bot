@@ -1,0 +1,26 @@
+{
+  "STRATEGY_ENABLED": {
+    "Continuation Model (PRIMARY)": true,
+    "Flat Top Base Breakout": false,
+    "Stage 2 Base Breakout": true,
+    "Downtrend Trendline Reversal": true,
+    "Distribution Base Breakdown (SHORT)": false,
+    "Accumulation Base Breakout": true
+  },
+  "STRATEGY_MIN_VOL_RATIO": {
+    "Continuation Model (PRIMARY)": 1.5,
+    "Flat Top Base Breakout": 1.5,
+    "Stage 2 Base Breakout": 2.5,
+    "Downtrend Trendline Reversal": 1.5,
+    "Distribution Base Breakdown (SHORT)": 1.5,
+    "Accumulation Base Breakout": 1.5
+  },
+  "STRATEGY_RR2": {
+    "Continuation Model (PRIMARY)": 2.0,
+    "Flat Top Base Breakout": 2.0,
+    "Stage 2 Base Breakout": 1.5,
+    "Downtrend Trendline Reversal": 1.5,
+    "Distribution Base Breakdown (SHORT)": 1.5,
+    "Accumulation Base Breakout": 2.0
+  }
+}
