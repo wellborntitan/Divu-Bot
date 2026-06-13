@@ -152,6 +152,17 @@ def send_no_signals():
     _post({"content": f"✅ Morning scan complete — no new signals. {_now_et()}"})
 
 
+def send_ema_trail(event: dict):
+    """🔁 Runner exited on a daily close through the 8 EMA."""
+    pnl = event.get("pnl", 0)
+    emoji = "🟢" if pnl >= 0 else "🔴"
+    _post({"content":
+        f"🔁 **8 EMA TRAIL EXIT — ${event['symbol']}** {emoji}\n"
+        f"Closed {event.get('shares', '?')} sh @ `${event.get('price')}` "
+        f"(8 EMA `${event.get('ema8')}`) | P&L: `${pnl}` "
+        f"({event.get('pct_chg', 0):+.1f}%) | {event.get('strategy', '')} | {_now_et()}"})
+
+
 # Rate-limit error alerts: same error at most once per 15 min,
 # so a persistent API failure doesn't flood the channel every 5-min cycle.
 _last_error_at: dict[str, float] = {}

@@ -30,6 +30,10 @@ class Config:
     TRIM_TP2 = 0.50   # Sell 50% at TP2 (of original)
     # Remaining 25% trails the 8 EMA
 
+    # Don't re-enter the same symbol+strategy within this many days
+    # (must match the backtest so live behavior == tested behavior)
+    COOLDOWN_DAYS = 15
+
     # ── Per-detector thresholds (tuned by parameter_optimizer.py / optimize_bot.py)
     # These replace hardcoded values inside pattern_detector.py.
 

@@ -10,12 +10,13 @@ import os
 import shutil
 import tempfile
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 
 from config import Config
-from data_fetcher import get_latest_quote
+from data_fetcher import get_latest_quote, get_bars
+from indicators import add_emas
 from risk_manager import trim_shares
 from trade_executor import (
     submit_market_order, close_position, submit_stop_order,
@@ -58,6 +59,45 @@ def _pnl(pos: dict, price: float, shares: int) -> float:
     if pos["signal_type"] == "short":
         return round((pos["entry"] - price) * shares, 2)
     return round((price - pos["entry"]) * shares, 2)
+
+
+def _is_late_session() -> bool:
+    """
+    True in the last ~10 min of the trading day. The 8 EMA trail rule is
+    'daily CLOSE below the 8 EMA', so we only evaluate it when the current
+    price is effectively the close — otherwise normal intraday dips would
+    shake us out of winners.
+    """
+    now = datetime.now(ET)
+    return now.hour * 60 + now.minute >= 15 * 60 + 50
+
+
+def in_cooldown(symbol: str, strategy: str, days: int | None = None) -> bool:
+    """
+    True if we entered this symbol+strategy within the last `days` days.
+    Mirrors the backtest's COOLDOWN_DAYS so live behavior matches what
+    was tested.
+    """
+    if days is None:
+        days = getattr(Config, "COOLDOWN_DAYS", 15)
+    try:
+        if not os.path.exists(TRADE_LOG_FILE):
+            return False
+        with open(TRADE_LOG_FILE) as f:
+            content = f.read().strip()
+        log = json.loads(content) if content else []
+    except Exception:
+        return False
+    cutoff = datetime.now(ET) - timedelta(days=days)
+    for e in reversed(log):
+        if (e.get("type") == "entry" and e.get("symbol") == symbol
+                and e.get("strategy") == strategy):
+            try:
+                if datetime.fromisoformat(e["ts"]) >= cutoff:
+                    return True
+            except (KeyError, ValueError):
+                continue
+    return False
 
 
 def load_positions() -> dict:
@@ -350,6 +390,42 @@ def check_all_positions(notifier) -> list[dict]:
             }
             notifier.send_tp_hit(event)
             events.append(event)
+
+        # ── 8 EMA TRAIL (after TP1, evaluated near the daily close) ───
+        # "Hold as long as the 8 EMA holds": once TP1 is banked, a daily
+        # close below the 8 EMA (above, for shorts) exits everything left.
+        if (pos["tp1_hit"] and pos["shares_remaining"] > 0
+                and _is_late_session()):
+            try:
+                bars = get_bars(symbol, days=30)
+                if bars is not None and len(bars) >= 12:
+                    ema8 = add_emas(bars)["ema8"].iloc[-1]
+                    broke = (price < ema8) if not is_short else (price > ema8)
+                    if broke:
+                        cancel_order(pos.get("stop_order_id"))
+                        side = "sell" if not is_short else "buy"
+                        submit_market_order(symbol, pos["shares_remaining"], side)
+                        log_trade_event("ema_trail", symbol, {
+                            "strategy": pos["strategy"], "price": price,
+                            "shares": pos["shares_remaining"],
+                            "pnl": _pnl(pos, price, pos["shares_remaining"]),
+                        })
+                        event = {
+                            "type": "ema_trail", "symbol": symbol,
+                            "price": price, "entry": entry,
+                            "ema8": round(float(ema8), 2),
+                            "pct_chg": pct_chg, "strategy": pos["strategy"],
+                            "shares": pos["shares_remaining"],
+                            "pnl": _pnl(pos, price, pos["shares_remaining"]),
+                        }
+                        if hasattr(notifier, "send_ema_trail"):
+                            notifier.send_ema_trail(event)
+                        events.append(event)
+                        positions.pop(symbol, None)
+                        remove_position(symbol)
+                        continue
+            except Exception as exc:
+                logger.error(f"[ema_trail] {symbol}: {exc}")
 
         positions[symbol] = pos
 

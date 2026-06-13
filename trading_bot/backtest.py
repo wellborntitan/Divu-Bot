@@ -49,8 +49,11 @@ YEARS          = 3          # years of history to fetch
 LOOKBACK_DAYS  = YEARS * 365 + 30   # extra buffer for API
 MIN_BARS       = 120        # skip symbol if fewer bars available
 MAX_HOLD_DAYS  = 30         # force-close after this many days
-COOLDOWN_DAYS  = 15         # don't re-signal same stock+strategy within N days
-CACHE_FILE     = BOT_DIR / "backtest_cache.pkl"
+# Cooldown shared with the live bot (single source of truth in Config)
+COOLDOWN_DAYS  = getattr(Config, "COOLDOWN_DAYS", 15)
+# Note: cache renamed when we switched IEX→SIP — old IEX volume data is
+# not comparable and must not be reused.
+CACHE_FILE     = BOT_DIR / "backtest_cache_sip.pkl"
 OUT_DIR        = BOT_DIR.parent           # one level above trading_bot
 OUT_PATH       = OUT_DIR / "Backtest_Results.xlsx"
 
@@ -74,7 +77,8 @@ def _headers() -> dict:
 
 def _fetch_bars(symbol: str) -> pd.DataFrame | None:
     """Fetch up to LOOKBACK_DAYS of daily bars for one symbol."""
-    end   = datetime.now(ET).strftime("%Y-%m-%d")
+    # Free-tier SIP requires data >15 min old
+    end   = (datetime.now(pytz.UTC) - timedelta(minutes=16)).isoformat()
     start = (datetime.now(ET) - timedelta(days=LOOKBACK_DAYS)).strftime("%Y-%m-%d")
     url   = f"https://data.alpaca.markets/v2/stocks/{symbol}/bars"
     params = {
@@ -82,7 +86,7 @@ def _fetch_bars(symbol: str) -> pd.DataFrame | None:
         "start":     start,
         "end":       end,
         "limit":     1500,
-        "feed":      "iex",
+        "feed":      "sip",   # full consolidated tape — matches live bot
     }
     try:
         resp = requests.get(url, headers=_headers(), params=params, timeout=15)
@@ -190,110 +194,91 @@ def simulate_trade(df: pd.DataFrame, signal_idx: int,
                    entry_plan: float, stop: float, tp1: float, tp2: float,
                    direction: str) -> dict:
     """
-    Simulate from bar AFTER signal (entry at next open).
-    Tracks: SL, TP1 (move stop to BE), TP2, 8-EMA trail break, max hold.
-    Returns outcome dict.
+    Simulate from bar AFTER signal (entry at next open), mirroring the
+    LIVE bot's exit engine exactly:
+      - stop-loss exits the whole position
+      - TP1: sell TRIM_TP1 (25%), stop -> breakeven
+      - TP2: sell TRIM_TP2 (50%), runner (25%) stays on
+      - after TP1: a daily close through the 8 EMA exits whatever remains
+      - max hold force-close
+    pnl_r is the position-weighted R multiple (e.g. TP1 then breakeven
+    stop = 0.25 * 1R + 0.75 * 0R = +0.25R), matching live dollar P&L / risk.
     """
     is_long  = direction == "long"
     start    = signal_idx + 1          # entry bar
     if start >= len(df):
-        return {"outcome": "no_data", "pnl_r": 0.0, "days_held": 0, "tp1_hit": False}
+        return {"outcome": "no_data", "pnl_r": 0.0, "days_held": 0,
+                "tp1_hit": False, "tp2_hit": False}
 
     actual_entry = df.iloc[start]["open"]
     risk = abs(actual_entry - stop)
     if risk < 0.01:
         risk = abs(entry_plan - stop) or 0.01
 
-    # After TP1 hit, the effective stop moves to entry (breakeven)
-    tp1_hit       = False
-    current_stop  = stop    # starts at original stop, moves to BE after TP1
+    f1 = getattr(Config, "TRIM_TP1", 0.25)
+    f2 = getattr(Config, "TRIM_TP2", 0.50)
+
+    def r_mult(price: float) -> float:
+        return ((price - actual_entry) / risk if is_long
+                else (actual_entry - price) / risk)
+
+    realized     = 0.0      # R already banked by trims
+    frac_open    = 1.0      # fraction of position still on
+    tp1_hit      = False
+    tp2_hit      = False
+    current_stop = stop     # moves to breakeven after TP1
+
+    def done(outcome: str, exit_price: float, days_held: int) -> dict:
+        total = realized + frac_open * r_mult(exit_price)
+        return {"outcome": outcome, "pnl_r": round(total, 2),
+                "days_held": days_held, "tp1_hit": tp1_hit,
+                "tp2_hit": tp2_hit, "exit_price": round(exit_price, 2)}
 
     for i in range(start, min(start + MAX_HOLD_DAYS, len(df))):
-        bar        = df.iloc[i]
-        bar_open   = bar["open"]
-        bar_high   = bar["high"]
-        bar_low    = bar["low"]
-        bar_close  = bar["close"]
-        ema8       = bar.get("ema8", None)
-        days_held  = i - start + 1
+        bar       = df.iloc[i]
+        bar_open  = bar["open"]
+        bar_high  = bar["high"]
+        bar_low   = bar["low"]
+        bar_close = bar["close"]
+        ema8      = bar.get("ema8", None)
+        days_held = i - start + 1
 
-        if is_long:
-            # ── SL check (worst case: low hits stop) ──────────────────
-            # If we gap below stop on open, exit at open
-            if bar_open <= current_stop:
-                exit_p = bar_open
-                pnl_r  = (exit_p - actual_entry) / risk
-                return {"outcome": "sl_hit", "pnl_r": round(pnl_r, 2),
-                        "days_held": days_held, "tp1_hit": tp1_hit,
-                        "exit_price": round(exit_p, 2)}
-            if bar_low <= current_stop:
-                exit_p = current_stop
-                pnl_r  = (exit_p - actual_entry) / risk
-                outcome = "be_stop" if tp1_hit else "sl_hit"
-                return {"outcome": outcome, "pnl_r": round(pnl_r, 2),
-                        "days_held": days_held, "tp1_hit": tp1_hit,
-                        "exit_price": round(exit_p, 2)}
+        stop_gap  = (bar_open <= current_stop) if is_long else (bar_open >= current_stop)
+        stop_touch= (bar_low  <= current_stop) if is_long else (bar_high >= current_stop)
+        tp2_touch = (bar_high >= tp2) if is_long else (bar_low <= tp2)
+        tp1_touch = (bar_high >= tp1) if is_long else (bar_low <= tp1)
+        ema_break = (ema8 is not None and
+                     ((bar_close < ema8) if is_long else (bar_close > ema8)))
 
-            # ── TP2 check ─────────────────────────────────────────────
-            if tp1_hit and bar_high >= tp2:
-                pnl_r = (tp2 - actual_entry) / risk
-                return {"outcome": "tp2_hit", "pnl_r": round(pnl_r, 2),
-                        "days_held": days_held, "tp1_hit": True,
-                        "exit_price": round(tp2, 2)}
+        # ── Stop first (conservative intrabar ordering) ───────────────
+        if stop_gap:
+            return done("be_stop" if tp1_hit else "sl_hit", bar_open, days_held)
+        if stop_touch:
+            return done("be_stop" if tp1_hit else "sl_hit", current_stop, days_held)
 
-            # ── TP1 check ─────────────────────────────────────────────
-            if not tp1_hit and bar_high >= tp1:
-                tp1_hit      = True
-                current_stop = actual_entry     # move stop to BE
+        # ── TP2 trim (runner stays on) ────────────────────────────────
+        if tp1_hit and not tp2_hit and tp2_touch:
+            realized  += f2 * r_mult(tp2)
+            frac_open -= f2
+            tp2_hit    = True
+            if frac_open <= 0.001:
+                return done("tp2_hit", tp2, days_held)
 
-            # ── 8-EMA trail (only after TP1 and once past bar 2) ─────
-            if tp1_hit and ema8 is not None and days_held >= 2:
-                if bar_close < ema8:
-                    pnl_r = (bar_close - actual_entry) / risk
-                    return {"outcome": "ema_trail", "pnl_r": round(pnl_r, 2),
-                            "days_held": days_held, "tp1_hit": True,
-                            "exit_price": round(bar_close, 2)}
+        # ── TP1 trim + breakeven ──────────────────────────────────────
+        if not tp1_hit and tp1_touch:
+            realized    += f1 * r_mult(tp1)
+            frac_open   -= f1
+            tp1_hit      = True
+            current_stop = actual_entry
 
-        else:  # SHORT
-            if bar_open >= current_stop:
-                exit_p = bar_open
-                pnl_r  = (actual_entry - exit_p) / risk
-                return {"outcome": "sl_hit", "pnl_r": round(pnl_r, 2),
-                        "days_held": days_held, "tp1_hit": tp1_hit,
-                        "exit_price": round(exit_p, 2)}
-            if bar_high >= current_stop:
-                exit_p = current_stop
-                pnl_r  = (actual_entry - exit_p) / risk
-                outcome = "be_stop" if tp1_hit else "sl_hit"
-                return {"outcome": outcome, "pnl_r": round(pnl_r, 2),
-                        "days_held": days_held, "tp1_hit": tp1_hit,
-                        "exit_price": round(exit_p, 2)}
+        # ── 8 EMA trail: daily close through the 8 EMA after TP1 ─────
+        if tp1_hit and days_held >= 2 and ema_break:
+            return done("ema_trail", bar_close, days_held)
 
-            if tp1_hit and bar_low <= tp2:
-                pnl_r = (actual_entry - tp2) / risk
-                return {"outcome": "tp2_hit", "pnl_r": round(pnl_r, 2),
-                        "days_held": days_held, "tp1_hit": True,
-                        "exit_price": round(tp2, 2)}
-
-            if not tp1_hit and bar_low <= tp1:
-                tp1_hit      = True
-                current_stop = actual_entry
-
-            if tp1_hit and ema8 is not None and days_held >= 2:
-                if bar_close > ema8:
-                    pnl_r = (actual_entry - bar_close) / risk
-                    return {"outcome": "ema_trail", "pnl_r": round(pnl_r, 2),
-                            "days_held": days_held, "tp1_hit": True,
-                            "exit_price": round(bar_close, 2)}
-
-    # Max hold reached: exit at last bar's close
-    last_idx  = min(start + MAX_HOLD_DAYS - 1, len(df) - 1)
+    # Max hold reached: exit remainder at last bar's close
+    last_idx   = min(start + MAX_HOLD_DAYS - 1, len(df) - 1)
     last_close = df.iloc[last_idx]["close"]
-    pnl_r = ((last_close - actual_entry) / risk if is_long
-              else (actual_entry - last_close) / risk)
-    return {"outcome": "max_hold", "pnl_r": round(pnl_r, 2),
-            "days_held": MAX_HOLD_DAYS, "tp1_hit": tp1_hit,
-            "exit_price": round(last_close, 2)}
+    return done("max_hold", last_close, MAX_HOLD_DAYS)
 
 
 # ─── Per-symbol walk-forward ───────────────────────────────────────────────────

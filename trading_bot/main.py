@@ -37,7 +37,7 @@ from risk_manager import calculate_shares, calculate_dollar_risk
 from trade_executor import submit_market_order, submit_stop_order
 from position_monitor import (
     add_position, check_all_positions, get_open_summary, load_positions,
-    reconcile_positions,
+    reconcile_positions, in_cooldown,
 )
 from discord_notifier import (
     send_new_signal, send_eod_summary, send_scan_start,
@@ -150,8 +150,9 @@ import discord_notifier as _notifier
 
 class _Notifier:
     """Thin wrapper so position_monitor can call methods on a passed object."""
-    send_tp_hit  = staticmethod(_notifier.send_tp_hit)
+    send_tp_hit    = staticmethod(_notifier.send_tp_hit)
     send_stop_loss = staticmethod(_notifier.send_stop_loss)
+    send_ema_trail = staticmethod(_notifier.send_ema_trail)
 
 NOTIFIER = _Notifier()
 
@@ -224,6 +225,8 @@ def morning_scan():
                 continue
             signals = scan_symbol(symbol, df, df_intraday=None)
             for sig in signals:
+                if in_cooldown(sig["symbol"], sig["strategy"]):
+                    continue
                 shares       = calculate_shares(sig["entry"], sig["stop"], account_equity,
                                                 is_short=(sig["signal_type"] == "short"))
                 dollar_risk  = calculate_dollar_risk(shares, sig["entry"], sig["stop"])
@@ -392,6 +395,8 @@ def _scan_universe_once(universe: list[str], account_equity: float) -> int:
             df = _project_today_volume(df)   # fair volume comparison mid-session
             for sig in scan_symbol(symbol, df, df_intraday=None):
                 if _already_signaled_today(sig):
+                    continue
+                if in_cooldown(sig["symbol"], sig["strategy"]):
                     continue
                 shares      = calculate_shares(sig["entry"], sig["stop"], account_equity,
                                                is_short=(sig["signal_type"] == "short"))

@@ -144,7 +144,7 @@ function renderStatsAndHistory(log) {
   document.getElementById("s-n").textContent  = exits.length;
 
   const labels = {entry: "ENTRY", tp1: "TP1", tp2: "TP2", stop_loss: "STOP",
-                  closed_external: "CLOSED*"};
+                  ema_trail: "8EMA EXIT", closed_external: "CLOSED*"};
   el.innerHTML = `<table><tr><th>Time</th><th>Symbol</th><th>Event</th>
     <th class="hide-m">Strategy</th><th>Price</th><th>Shares</th><th>P&amp;L</th></tr>` +
     log.slice(-60).reverse().map(e => `<tr>
