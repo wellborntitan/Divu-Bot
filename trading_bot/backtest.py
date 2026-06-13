@@ -283,8 +283,14 @@ def simulate_trade(df: pd.DataFrame, signal_idx: int,
 
 # ─── Per-symbol walk-forward ───────────────────────────────────────────────────
 
-def backtest_symbol(symbol: str, df: pd.DataFrame) -> list[dict]:
-    """Walk forward through df, run all 6 detectors, simulate each signal."""
+def backtest_symbol(symbol: str, df: pd.DataFrame,
+                     spy_df_full: pd.DataFrame | None = None) -> list[dict]:
+    """Walk forward through df, run all 6 detectors, simulate each signal.
+
+    spy_df_full: full SPY daily bar history (same date range as df).
+                 Passed to scan_symbol so the RS filter works in the backtest
+                 with no look-ahead bias (we slice to the signal date).
+    """
     df = add_emas(df.copy())
     trades: list[dict] = []
     # cooldown: strategy -> last bar index where we fired
@@ -294,8 +300,13 @@ def backtest_symbol(symbol: str, df: pd.DataFrame) -> list[dict]:
         window = df.iloc[: i + 1].copy()   # only past data
         date   = df.index[i]
 
+        # Slice SPY to the same date (no look-ahead bias)
+        spy_window = None
+        if spy_df_full is not None:
+            spy_window = spy_df_full[spy_df_full.index <= date].copy()
+
         try:
-            signals = scan_symbol(symbol, window, df_intraday=None)
+            signals = scan_symbol(symbol, window, df_intraday=None, spy_df=spy_window)
         except Exception:
             continue
 
@@ -362,11 +373,25 @@ def run_backtest() -> list[dict]:
     all_trades: list[dict] = []
     total = len(symbols)
 
+    # Pre-fetch SPY for the Relative Strength filter.
+    # Cached alongside other symbols so it doesn't re-download each run.
+    log.info("Loading SPY data for Relative Strength filter...")
+    if "SPY" in cache:
+        spy_df_full = cache["SPY"]
+        log.info(f"  SPY cached ({len(spy_df_full)} bars)")
+    else:
+        spy_df_full = _fetch_bars("SPY")
+        if spy_df_full is not None:
+            cache["SPY"] = spy_df_full
+            log.info(f"  SPY fetched ({len(spy_df_full)} bars)")
+        else:
+            log.warning("  SPY fetch failed — RS filter will be skipped")
+
     for idx, sym in enumerate(symbols, 1):
         prefix = f"[{idx:>4}/{total}] {sym:<6}"
 
         # Use cached bars if available
-        if sym in cache:
+        if sym in cache and sym != "SPY":
             df = cache[sym]
             log.info(f"{prefix}  (cached, {len(df)} bars)")
         else:
@@ -383,7 +408,7 @@ def run_backtest() -> list[dict]:
             log.info(f"{prefix}  skip (insufficient data)")
             continue
 
-        trades = backtest_symbol(sym, df)
+        trades = backtest_symbol(sym, df, spy_df_full=spy_df_full)
         all_trades.extend(trades)
 
         if trades:

@@ -411,7 +411,9 @@ def _scan_universe_once(universe: list[str], account_equity: float) -> int:
             if not _filter_symbol(df):
                 continue
             df = _project_today_volume(df)   # fair volume comparison mid-session
-            for sig in scan_symbol(symbol, df, df_intraday=None):
+            # Pass spy_df so scan_symbol can apply the RS filter live.
+            # spy_df was already fetched above for the regime check.
+            for sig in scan_symbol(symbol, df, df_intraday=None, spy_df=spy_df):
                 if _already_signaled_today(sig):
                     continue
                 if in_cooldown(sig["symbol"], sig["strategy"]):

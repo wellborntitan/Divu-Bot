@@ -91,6 +91,14 @@ def check_continuation_model(symbol: str, df_raw) -> dict | None:
         return _fail("Low-vol pullback after ignition", f"no quiet consolidation in {lvp_window}d window")
     _pass("Low-vol pullback", f"{lvp_window}d window")
 
+    # 3b. Volume drying up in base (bars BEFORE the breakout day)
+    # Confirms institutions are holding, not distributing into the base.
+    # We exclude today's breakout bar (which should be high volume by design).
+    base_vol_slp = volume_slope(df.iloc[:-1], period=5)
+    if base_vol_slp > 0:
+        return _fail("Volume drying up in base", f"slope {base_vol_slp:+.3f} (expanding pre-breakout)")
+    _pass("Volume drying up in base", f"slope {base_vol_slp:+.3f}")
+
     # 4. Base tightness
     tight     = base_tightness(df, period=7)
     tight_pct = getattr(Config, "CONT_TIGHT_PCT", 8.0)
@@ -497,13 +505,31 @@ def check_accumulation_breakout(symbol: str, df_raw) -> dict | None:
 # ─────────────────────────────────────────────
 # MASTER SCANNER — run all strategies on one symbol
 # ─────────────────────────────────────────────
-def scan_symbol(symbol: str, df_daily, df_intraday=None) -> list[dict]:
+def scan_symbol(symbol: str, df_daily, df_intraday=None, spy_df=None) -> list[dict]:
     """
     Run all 6 strategy detectors on a symbol.
     Respects Config.STRATEGY_ENABLED (set by optimize_bot.py after backtest).
+
+    spy_df: optional SPY daily bars DataFrame (same or earlier date range).
+            When provided, long signals where the stock is underperforming SPY
+            over the last 20 days are filtered out (Relative Strength filter).
+
     Returns list of triggered signals (usually 0 or 1).
     """
     signals = []
+
+    # ── Pre-compute RS ratio once for this symbol ─────────────────────────────
+    # stock_rs > 0 means outperforming SPY over 20 days → desirable.
+    # None means SPY data unavailable → filter is skipped (fail open).
+    stock_rs = None
+    if spy_df is not None and len(spy_df) >= 21 and len(df_daily) >= 21:
+        try:
+            stock_ret = df_daily["close"].iloc[-1] / df_daily["close"].iloc[-21] - 1
+            spy_ret   = spy_df["close"].iloc[-1]   / spy_df["close"].iloc[-21]   - 1
+            stock_rs  = stock_ret - spy_ret         # positive = outperforming SPY
+        except Exception:
+            stock_rs = None
+    # ──────────────────────────────────────────────────────────────────────────
 
     # Names MUST match the STRAT strings inside each detector (and the keys
     # in Config.STRATEGY_ENABLED) exactly, or optimizer settings are ignored.
@@ -530,6 +556,14 @@ def scan_symbol(symbol: str, df_daily, df_intraday=None) -> list[dict]:
             sig = checker(symbol, df_daily)
             if not sig:
                 continue
+
+            # ── Relative Strength filter (long signals only) ──────────────────
+            # Skip if stock is underperforming SPY over 20 days.
+            # Leading stocks break out cleanly; laggards fake-out and fail.
+            # Shorts are exempt — a weak stock vs SPY is actually more bearish.
+            if stock_rs is not None and sig.get("signal_type") == "long":
+                if stock_rs < 0:
+                    continue   # stock lagging market — skip
 
             # ── Post-filter: volume ratio must meet strategy-specific threshold ──
             min_vol = vol_map.get(name, 1.5)
