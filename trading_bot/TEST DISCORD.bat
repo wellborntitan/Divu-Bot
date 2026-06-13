@@ -1,3 +1,3 @@
 @echo off
-cd /d "C:\Users\harit\OneDrive\Desktop\Trading Strategy\StocksBreakout\trading_bot"
+cd /d "%~dp0"
 python test_discord.py

@@ -1,6 +1,6 @@
 @echo off
 title Albert Ray Trading Bot
-cd /d "C:\Users\harit\OneDrive\Desktop\Trading Strategy\StocksBreakout\trading_bot"
+cd /d "%~dp0"
 
 :MENU
 cls

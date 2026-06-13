@@ -1,6 +1,7 @@
 @echo off
 title Push Update to GitHub
-cd /d "C:\Users\harit\OneDrive\Desktop\Trading Strategy\StocksBreakout"
+:: %~dp0 = folder this script lives in, so it works wherever the project moves
+cd /d "%~dp0"
 
 echo.
 echo  =====================================================
@@ -13,6 +14,11 @@ if not exist ".git" (
     pause
     goto END
 )
+
+:: OneDrive locks .git files during sync, which makes git's automatic
+:: cleanup (gc) fail with "Deletion of directory failed" prompts.
+:: Disable auto-gc — it's an optimization, not required.
+git config gc.auto 0
 
 echo  [0/4] Syntax-checking Python files...
 python -m py_compile trading_bot\main.py trading_bot\run_job.py trading_bot\position_monitor.py trading_bot\data_fetcher.py trading_bot\trade_executor.py trading_bot\pattern_detector.py trading_bot\discord_notifier.py trading_bot\indicators.py trading_bot\risk_manager.py trading_bot\config.py

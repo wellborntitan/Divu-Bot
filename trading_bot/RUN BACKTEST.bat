@@ -1,6 +1,6 @@
 @echo off
 title Backtester - Albert Ray Strategies
-cd /d "C:\Users\harit\OneDrive\Desktop\Trading Strategy\StocksBreakout\trading_bot"
+cd /d "%~dp0"
 
 echo ============================================================
 echo   WALK-FORWARD BACKTESTER  ^|  3 Years  ^|  Full Market

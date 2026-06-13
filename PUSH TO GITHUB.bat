@@ -1,6 +1,6 @@
 @echo off
 title Push to GitHub (FULL RESET)
-cd /d "C:\Users\harit\OneDrive\Desktop\Trading Strategy\StocksBreakout"
+cd /d "%~dp0"
 
 echo.
 echo  =====================================================
@@ -32,6 +32,9 @@ if errorlevel 1 goto ERROR
 :: Set identity (required for commit)
 git config user.email "haritk2103@gmail.com"
 git config user.name "Harit"
+:: OneDrive locks .git files during sync — disable auto-gc to avoid
+:: "Deletion of directory failed" prompts mid-push.
+git config gc.auto 0
 
 :: Set remote
 echo  [2/6] Setting remote origin...

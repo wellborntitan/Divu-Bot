@@ -1,6 +1,6 @@
 @echo off
 title Bot Optimizer — Albert Ray Strategies
-cd /d "C:\Users\harit\OneDrive\Desktop\Trading Strategy\StocksBreakout\trading_bot"
+cd /d "%~dp0"
 
 echo ============================================================
 echo   BOT OPTIMIZER
