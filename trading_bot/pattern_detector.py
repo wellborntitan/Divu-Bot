@@ -336,9 +336,18 @@ def check_downtrend_reversal(symbol: str, df_raw) -> dict | None:
     _pass("Volume on breakout", f"{vol_r:.2f}x")
 
     entry = round(last["close"], 2)
-    stop  = round(tl_value_today * 0.98, 2)
+    # Stop logic: anchor to today's breakout bar low (real technical level).
+    # The old trendline stop caused 15-30% stops when stocks gap up on earnings
+    # (entry >> trendline), making R-multiples meaningless and TP unreachable.
+    # We use the tighter of: (a) below today's bar low, or (b) below trendline.
+    bar_low_stop   = round(last["low"] * 0.99, 2)
+    tl_stop        = round(tl_value_today * 0.98, 2)
+    stop           = max(bar_low_stop, tl_stop)   # max = closer to entry = tighter
+    # Hard floor: never more than MAX_STOP_PCT below entry (same gate as scan_symbol)
+    max_stop_price = round(entry * (1 - getattr(Config, "MAX_STOP_PCT", 12.0) / 100), 2)
+    stop           = round(max(stop, max_stop_price), 2)
     tp1, tp2 = _risk_targets(entry, stop)
-    notes = f"Trendline break @ ${tl_value_today:.2f} | {drop_pct:.0f}% drop vs 60d ago"
+    notes = f"Trendline @ ${tl_value_today:.2f} | Bar low stop ${bar_low_stop:.2f} | {drop_pct:.0f}% drop vs 60d ago"
 
     if log: log.signal_fired(entry, stop, tp1, tp2, notes)
     return {
@@ -526,6 +535,15 @@ def scan_symbol(symbol: str, df_daily, df_intraday=None) -> list[dict]:
             min_vol = vol_map.get(name, 1.5)
             if sig.get("volume_ratio", 0) < min_vol:
                 continue
+
+            # ── Risk-quality gate: stop must be within MAX_STOP_PCT of entry ──
+            # Far-away stops produce meaningless R-multiples and unmanaged
+            # buy-and-hold trades (the backtest's 89% "max_hold" problem).
+            max_stop_pct = getattr(Config, "MAX_STOP_PCT", 12.0)
+            if sig["entry"] > 0:
+                stop_dist_pct = abs(sig["entry"] - sig["stop"]) / sig["entry"] * 100
+                if stop_dist_pct > max_stop_pct:
+                    continue
 
             # ── Adjust TP2 R-multiple if optimizer changed it ─────────────────
             rr2 = rr2_map.get(name, 2.0)

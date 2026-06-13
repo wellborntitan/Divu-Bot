@@ -385,6 +385,24 @@ def _scan_universe_once(universe: list[str], account_equity: float) -> int:
     """One scan pass. Skips symbols already open or already signaled today."""
     open_pos = load_positions()
     fired = 0
+
+    # ── Regime filter: only take longs when SPY is in an uptrend ─────────────
+    # Compute once per scan pass (not per-symbol) to avoid redundant API calls.
+    # If SPY data is unavailable, fail open (don't block trades on data error).
+    try:
+        spy_df = get_bars("SPY", days=70)
+        if spy_df is not None and len(spy_df) >= 50:
+            spy_ema50 = float(spy_df["close"].ewm(span=50, adjust=False).mean().iloc[-1])
+            spy_in_uptrend = float(spy_df["close"].iloc[-1]) > spy_ema50
+            logger.info(f"[regime] SPY ${spy_df['close'].iloc[-1]:.2f} vs 50EMA ${spy_ema50:.2f} — "
+                        f"{'UPTREND ✓' if spy_in_uptrend else 'DOWNTREND — longs skipped'}")
+        else:
+            spy_in_uptrend = True
+    except Exception as e:
+        logger.warning(f"[regime] SPY fetch failed ({e}) — failing open")
+        spy_in_uptrend = True
+    # ─────────────────────────────────────────────────────────────────────────
+
     for symbol in universe:
         if symbol in open_pos:
             continue
@@ -397,6 +415,10 @@ def _scan_universe_once(universe: list[str], account_equity: float) -> int:
                 if _already_signaled_today(sig):
                     continue
                 if in_cooldown(sig["symbol"], sig["strategy"]):
+                    continue
+                # Regime filter: skip long signals when SPY is in downtrend
+                if sig.get("signal_type") == "long" and not spy_in_uptrend:
+                    logger.info(f"[regime] {symbol} long skipped — SPY below 50 EMA")
                     continue
                 shares      = calculate_shares(sig["entry"], sig["stop"], account_equity,
                                                is_short=(sig["signal_type"] == "short"))

@@ -34,6 +34,11 @@ class Config:
     # (must match the backtest so live behavior == tested behavior)
     COOLDOWN_DAYS = 15
 
+    # Reject any signal whose stop is further than this % from entry.
+    # Far-away stops (e.g. regression trendlines after a sharp move) make
+    # R-multiples meaningless and turn trades into unmanaged buy-and-hold.
+    MAX_STOP_PCT = 12.0
+
     # ── Per-detector thresholds (tuned by parameter_optimizer.py / optimize_bot.py)
     # These replace hardcoded values inside pattern_detector.py.
 
