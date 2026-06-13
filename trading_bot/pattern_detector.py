@@ -91,14 +91,6 @@ def check_continuation_model(symbol: str, df_raw) -> dict | None:
         return _fail("Low-vol pullback after ignition", f"no quiet consolidation in {lvp_window}d window")
     _pass("Low-vol pullback", f"{lvp_window}d window")
 
-    # 3b. Volume drying up in base (bars BEFORE the breakout day)
-    # Confirms institutions are holding, not distributing into the base.
-    # We exclude today's breakout bar (which should be high volume by design).
-    base_vol_slp = volume_slope(df.iloc[:-1], period=5)
-    if base_vol_slp > 0:
-        return _fail("Volume drying up in base", f"slope {base_vol_slp:+.3f} (expanding pre-breakout)")
-    _pass("Volume drying up in base", f"slope {base_vol_slp:+.3f}")
-
     # 4. Base tightness
     tight     = base_tightness(df, period=7)
     tight_pct = getattr(Config, "CONT_TIGHT_PCT", 8.0)
@@ -318,14 +310,23 @@ def check_downtrend_reversal(symbol: str, df_raw) -> dict | None:
         return _fail("Prior downtrend", f"only {drop_pct:.1f}% drop, need >{(1-dt_min_drop)*100:.0f}%")
     _pass("Prior downtrend", f"{drop_pct:.1f}% drop vs 60d ago")
 
+    # Base must be TIGHT (≤25% range over 20 days).
+    # Old threshold of 40% was too loose — allowed sideways drift that isn't a real base.
+    # A tight base = genuine accumulation before the reversal attempt.
     recent_tightness = base_tightness(df, period=20)
-    if recent_tightness > 40:
-        return _fail("Base forming (20d tightness < 40%)", f"{recent_tightness:.1f}%")
-    _pass("Base forming", f"{recent_tightness:.1f}% tightness")
+    if recent_tightness > 25:
+        return _fail("Tight base (20d range ≤25%)", f"{recent_tightness:.1f}% — too wide/choppy")
+    _pass("Tight base", f"{recent_tightness:.1f}% range")
 
-    if not ema8_slope_positive(df, lookback=5):
-        return _fail("8 EMA turning up", "slope flat/negative")
-    _pass("8 EMA turning up")
+    # 8 EMA must have CROSSED above 21 EMA — not just starting to turn.
+    # This filters out dead-cat bounces where the EMA is still rolling over.
+    # A cross confirms the short-term trend has actually changed direction.
+    ema8_now  = last.get("ema8", 0)
+    ema21_now = last.get("ema21", 0)
+    if ema8_now <= ema21_now:
+        return _fail("8 EMA crossed above 21 EMA",
+                     f"ema8 ${ema8_now:.2f} still below ema21 ${ema21_now:.2f}")
+    _pass("8 EMA above 21 EMA", f"${ema8_now:.2f} > ${ema21_now:.2f}")
 
     tl = find_downtrend_trendline(df, lookback=60)
     if tl is None:
@@ -338,7 +339,8 @@ def check_downtrend_reversal(symbol: str, df_raw) -> dict | None:
         return _fail("Close > trendline", f"${last['close']:.2f} < ${tl_value_today:.2f}")
     _pass("Close > trendline", f"${last['close']:.2f}")
 
-    dt_min_vol = getattr(Config, "DT_MIN_VOL", 1.8)
+    # Require strong volume for a reversal — need institutional conviction, not retail speculation.
+    dt_min_vol = getattr(Config, "DT_MIN_VOL", 2.5)
     if vol_r < dt_min_vol:
         return _fail("Volume on breakout", f"{vol_r:.2f}x < {dt_min_vol:.1f}x min")
     _pass("Volume on breakout", f"{vol_r:.2f}x")
@@ -510,26 +512,11 @@ def scan_symbol(symbol: str, df_daily, df_intraday=None, spy_df=None) -> list[di
     Run all 6 strategy detectors on a symbol.
     Respects Config.STRATEGY_ENABLED (set by optimize_bot.py after backtest).
 
-    spy_df: optional SPY daily bars DataFrame (same or earlier date range).
-            When provided, long signals where the stock is underperforming SPY
-            over the last 20 days are filtered out (Relative Strength filter).
+    spy_df: reserved for future use (SPY regime handled upstream in main.py).
 
     Returns list of triggered signals (usually 0 or 1).
     """
     signals = []
-
-    # ── Pre-compute RS ratio once for this symbol ─────────────────────────────
-    # stock_rs > 0 means outperforming SPY over 20 days → desirable.
-    # None means SPY data unavailable → filter is skipped (fail open).
-    stock_rs = None
-    if spy_df is not None and len(spy_df) >= 21 and len(df_daily) >= 21:
-        try:
-            stock_ret = df_daily["close"].iloc[-1] / df_daily["close"].iloc[-21] - 1
-            spy_ret   = spy_df["close"].iloc[-1]   / spy_df["close"].iloc[-21]   - 1
-            stock_rs  = stock_ret - spy_ret         # positive = outperforming SPY
-        except Exception:
-            stock_rs = None
-    # ──────────────────────────────────────────────────────────────────────────
 
     # Names MUST match the STRAT strings inside each detector (and the keys
     # in Config.STRATEGY_ENABLED) exactly, or optimizer settings are ignored.
@@ -556,14 +543,6 @@ def scan_symbol(symbol: str, df_daily, df_intraday=None, spy_df=None) -> list[di
             sig = checker(symbol, df_daily)
             if not sig:
                 continue
-
-            # ── Relative Strength filter (long signals only) ──────────────────
-            # Skip if stock is underperforming SPY over 20 days.
-            # Leading stocks break out cleanly; laggards fake-out and fail.
-            # Shorts are exempt — a weak stock vs SPY is actually more bearish.
-            if stock_rs is not None and sig.get("signal_type") == "long":
-                if stock_rs < 0:
-                    continue   # stock lagging market — skip
 
             # ── Post-filter: volume ratio must meet strategy-specific threshold ──
             min_vol = vol_map.get(name, 1.5)

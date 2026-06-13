@@ -44,7 +44,7 @@ class Config:
 
     # Continuation Model
     CONT_TIGHT_PCT    = 8.0    # max base tightness % (lower = stricter)
-    CONT_MIN_VOL      = 2.0    # min volume ratio on breakout day (raised from 1.5 — weak-vol breakouts fail more)
+    CONT_MIN_VOL      = 1.5    # min volume ratio on breakout day
     CONT_EMA_PROX     = 0.05   # max % price can be above 8 EMA
     CONT_IGN_LOOKBACK = 30     # bars to look back for ignition candle
     CONT_LVP_WINDOW   = 8      # bars after ignition to check for low-vol pullback
@@ -59,9 +59,12 @@ class Config:
     S2_MIN_VOL        = 2.0    # min volume ratio
     S2_IGN_VOL_MULT   = 2.5    # ignition candle volume multiple
 
-    # Downtrend Reversal
+    # Downtrend Reversal — re-enabled with stricter criteria (2026-06-13)
+    # Entry now requires: tight base ≤25%, 8 EMA crossed above 21 EMA,
+    # and 2.5x volume. These changes replace the loose 40% base / slope-only EMA
+    # checks that generated 254 garbage signals at 37% win rate.
     DT_MIN_DROP       = 0.85   # price_now must be < price_60d_ago x this
-    DT_MIN_VOL        = 1.8    # min volume ratio
+    DT_MIN_VOL        = 2.5    # min volume ratio (raised from 1.8 — need conviction)
 
     # Distribution Breakdown (Short)
     DIST_DIST_MULT    = 2.0    # distribution candle must be > avg_vol x this
@@ -77,20 +80,19 @@ class Config:
     # ── Strategy tuning (auto-updated by optimize_bot.py after each backtest)
     # Keys must match sig["strategy"] returned by each detector exactly.
     # Backtest results (2026-06-13):
-    #   Continuation Model: 61.9% win, PF 1.99 — KEEP
-    #   Stage 2 Base Breakout: 50% win, PF 1.01 — keep (small sample, needs more data)
-    #   Accumulation Breakout: 100% win, PF 999 — keep (too few signals to judge)
-    #   Downtrend Trendline Reversal: 37.4% win, PF 0.88 — DISABLED
-    #     Criteria too loose → 254/278 signals (91%) all losing. Was hiding behind
-    #     wide trendline stops (15-30%) that never got hit (luck, not edge).
-    #     Re-enable only after rewriting with stricter entry criteria.
-    #   Flat Top / Distribution Breakdown: disabled by earlier optimizer run
+    #   Continuation Model:      61.9% win, PF 1.99 — primary edge, keep
+    #   Stage 2 Base Breakout:   50% win, PF 1.01 — small sample, keep for more data
+    #   Accumulation Breakout:   100% win, PF 999 — too few, keep
+    #   Downtrend Reversal:      37.4% win at PF 0.88 with old criteria → re-written
+    #     New criteria: tight base ≤25%, 8 EMA must cross 21 EMA, 2.5x vol
+    #     Re-enabled — backtest will confirm the tighter version's edge
+    #   Flat Top / Distribution Breakdown: disabled (low sample + poor PF)
     STRATEGY_ENABLED = {
         "Continuation Model (PRIMARY)":        True,
-        "Flat Top Base Breakout":              False,   # disabled by optimizer
+        "Flat Top Base Breakout":              False,   # disabled: insufficient edge in backtest
         "Stage 2 Base Breakout":               True,
-        "Downtrend Trendline Reversal":        False,   # disabled: PF 0.88, criteria too loose
-        "Distribution Base Breakdown (SHORT)": False,   # disabled by optimizer
+        "Downtrend Trendline Reversal":        True,    # re-enabled with stricter criteria
+        "Distribution Base Breakdown (SHORT)": False,   # disabled: insufficient edge
         "Accumulation Base Breakout":          True,
     }
     STRATEGY_MIN_VOL_RATIO = {
