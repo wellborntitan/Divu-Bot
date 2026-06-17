@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-06-16 20:49:20 ET",
+  "last_scan": "Bot started \u2014 waiting for market open",
+  "next_action": "Morning scan at 9:35 ET",
+  "dry_run": false,
+  "regime": "BULL",
+  "equity": 0.0,
+  "open_positions": [],
+  "recent_trades": [],
+  "today": {
+    "date": "2026-06-16",
+    "trades": 0,
+    "wins": 0,
+    "pnl_r": 0,
+    "pnl_dollars": 0
+  },
+  "all_time": {
+    "total_trades": 0,
+    "win_rate": 0.0,
+    "profit_factor": 999.0
+  },
+  "last_scan_result": {
+    "scan_time": "2026-06-16 20:11 ET",
+    "symbols_scanned": 0,
+    "signals_found": 0,
+    "orders_placed": 0,
+    "regime": "BULL",
+    "elapsed_s": 19,
+    "signals": []
+  }
+}
