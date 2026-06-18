@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-06-18 14:15:26 ET",
+  "timestamp": "2026-06-18 14:20:29 ET",
   "last_scan": "09:35 ET",
   "next_action": "Monitor in 5 min",
   "dry_run": false,
   "regime": "BULL",
-  "equity": 99604.7,
+  "equity": 99607.07,
   "open_positions": [],
   "recent_trades": [],
   "today": {
