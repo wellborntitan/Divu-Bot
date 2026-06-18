@@ -1,14 +1,14 @@
 {
-  "timestamp": "2026-06-17 23:52:31 ET",
+  "timestamp": "2026-06-18 00:02:32 ET",
   "last_scan": "Market closed",
-  "next_action": "Morning scan at 9:35 ET (~9.6h)",
+  "next_action": "Morning scan at 9:35 ET (~9.4h)",
   "dry_run": false,
   "regime": "CHOPPY",
   "equity": 0.0,
   "open_positions": [],
   "recent_trades": [],
   "today": {
-    "date": "2026-06-17",
+    "date": "2026-06-18",
     "trades": 0,
     "wins": 0,
     "pnl_r": 0,
