@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-06-19 16:24:18 ET",
+  "timestamp": "2026-06-19 16:34:20 ET",
   "last_scan": "Market closed",
-  "next_action": "Morning scan at 9:35 ET (~17.1h)",
+  "next_action": "Morning scan at 9:35 ET (~16.9h)",
   "dry_run": false,
-  "regime": "CHOPPY",
+  "regime": "BULL",
   "equity": 0.0,
   "open_positions": [],
   "recent_trades": [],
