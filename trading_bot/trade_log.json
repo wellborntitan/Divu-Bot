@@ -11,5 +11,23 @@
     "tp2": 14.38,
     "shares": 718,
     "dollar_risk": 143.6
+  },
+  {
+    "ts": "2026-07-15T10:24:51.276088-04:00",
+    "type": "tp1",
+    "symbol": "ETHA",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 14.495,
+    "shares": 180,
+    "pnl": 74.7
+  },
+  {
+    "ts": "2026-07-15T10:24:52.353148-04:00",
+    "type": "tp2",
+    "symbol": "ETHA",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 14.495,
+    "shares": 359,
+    "pnl": 148.98
   }
 ]
