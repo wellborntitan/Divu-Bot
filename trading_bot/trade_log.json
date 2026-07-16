@@ -29,5 +29,15 @@
     "price": 14.495,
     "shares": 359,
     "pnl": 148.98
+  },
+  {
+    "ts": "2026-07-16T13:41:22.022149-04:00",
+    "type": "closed_external",
+    "symbol": "ETHA",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 14.08,
+    "shares": 179,
+    "pnl": 0.0,
+    "estimated": true
   }
 ]
