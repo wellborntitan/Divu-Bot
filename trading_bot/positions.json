@@ -1,1 +1,19 @@
-{}
+{
+  "SQQQ": {
+    "symbol": "SQQQ",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "entry": 42.41,
+    "stop": 41.84,
+    "tp1": 42.98,
+    "tp2": 43.26,
+    "shares_total": 240,
+    "shares_remaining": 240,
+    "dollar_risk": 136.8,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "opened_at": "2026-07-17T10:20:12.081466-04:00",
+    "breakeven_set": false,
+    "stop_order_id": null
+  }
+}

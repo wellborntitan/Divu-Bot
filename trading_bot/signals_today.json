@@ -1,8 +1,8 @@
 {
-  "date": "2026-07-14",
+  "date": "2026-07-17",
   "signals": [
     {
-      "symbol": "ETHA",
+      "symbol": "SQQQ",
       "strategy": "Downtrend Trendline Reversal"
     }
   ]
