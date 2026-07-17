@@ -61,5 +61,15 @@
     "price": 43.07,
     "shares": 60,
     "pnl": 39.6
+  },
+  {
+    "ts": "2026-07-17T11:55:00.885453-04:00",
+    "type": "closed_external",
+    "symbol": "SQQQ",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 42.41,
+    "shares": 180,
+    "pnl": 0.0,
+    "estimated": true
   }
 ]
