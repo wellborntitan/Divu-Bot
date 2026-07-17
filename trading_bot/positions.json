@@ -4,16 +4,16 @@
     "strategy": "Downtrend Trendline Reversal",
     "signal_type": "long",
     "entry": 42.41,
-    "stop": 41.84,
+    "stop": 42.41,
     "tp1": 42.98,
     "tp2": 43.26,
     "shares_total": 240,
-    "shares_remaining": 240,
+    "shares_remaining": 180,
     "dollar_risk": 136.8,
-    "tp1_hit": false,
+    "tp1_hit": true,
     "tp2_hit": false,
     "opened_at": "2026-07-17T10:20:12.081466-04:00",
-    "breakeven_set": false,
-    "stop_order_id": null
+    "breakeven_set": true,
+    "stop_order_id": "34731dee-6c73-4a7d-9fb3-6be3c9ac7c70"
   }
 }

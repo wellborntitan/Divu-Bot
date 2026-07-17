@@ -52,5 +52,14 @@
     "tp2": 43.26,
     "shares": 240,
     "dollar_risk": 136.8
+  },
+  {
+    "ts": "2026-07-17T11:05:00.384243-04:00",
+    "type": "tp1",
+    "symbol": "SQQQ",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 43.07,
+    "shares": 60,
+    "pnl": 39.6
   }
 ]
