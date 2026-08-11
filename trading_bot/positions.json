@@ -1,1 +1,19 @@
-{}
+{
+  "QUBT": {
+    "symbol": "QUBT",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "entry": 8.79,
+    "stop": 8.61,
+    "tp1": 8.97,
+    "tp2": 9.06,
+    "shares_total": 1176,
+    "shares_remaining": 1176,
+    "dollar_risk": 211.68,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "opened_at": "2026-08-11T10:25:03.274132-04:00",
+    "breakeven_set": false,
+    "stop_order_id": null
+  }
+}
