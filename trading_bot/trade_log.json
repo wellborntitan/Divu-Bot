@@ -84,5 +84,14 @@
     "tp2": 9.06,
     "shares": 1176,
     "dollar_risk": 211.68
+  },
+  {
+    "ts": "2026-08-12T10:10:00.457631-04:00",
+    "type": "tp1",
+    "symbol": "QUBT",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 8.98,
+    "shares": 294,
+    "pnl": 55.86
   }
 ]
