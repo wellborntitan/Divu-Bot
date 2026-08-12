@@ -93,5 +93,15 @@
     "price": 8.98,
     "shares": 294,
     "pnl": 55.86
+  },
+  {
+    "ts": "2026-08-12T11:35:00.091684-04:00",
+    "type": "closed_external",
+    "symbol": "QUBT",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 8.79,
+    "shares": 882,
+    "pnl": 0.0,
+    "estimated": true
   }
 ]
