@@ -103,5 +103,18 @@
     "shares": 882,
     "pnl": 0.0,
     "estimated": true
+  },
+  {
+    "ts": "2026-08-19T11:35:11.032357-04:00",
+    "type": "entry",
+    "symbol": "MSTR",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "price": 105.06,
+    "stop": 93.36,
+    "tp1": 116.76,
+    "tp2": 122.61,
+    "shares": 89,
+    "dollar_risk": 1041.3
   }
 ]

@@ -1,1 +1,19 @@
-{}
+{
+  "MSTR": {
+    "symbol": "MSTR",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "entry": 105.06,
+    "stop": 93.36,
+    "tp1": 116.76,
+    "tp2": 122.61,
+    "shares_total": 89,
+    "shares_remaining": 89,
+    "dollar_risk": 1041.3,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "opened_at": "2026-08-19T11:35:11.031879-04:00",
+    "breakeven_set": false,
+    "stop_order_id": null
+  }
+}
