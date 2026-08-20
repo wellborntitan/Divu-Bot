@@ -152,5 +152,14 @@
     "shares": 1203,
     "pnl": -818.04,
     "estimated": true
+  },
+  {
+    "ts": "2026-08-20T11:05:01.688467-04:00",
+    "type": "tp1",
+    "symbol": "BITX",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 15.23,
+    "shares": 174,
+    "pnl": 273.18
   }
 ]
