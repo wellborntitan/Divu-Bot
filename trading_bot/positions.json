@@ -31,23 +31,6 @@
     "tp2_hit": false,
     "opened_at": "2026-08-20T09:27:50.110985-04:00",
     "breakeven_set": false,
-    "stop_order_id": null
-  },
-  "NVAX": {
-    "symbol": "NVAX",
-    "strategy": "Downtrend Trendline Reversal",
-    "signal_type": "long",
-    "entry": 8.79,
-    "stop": 8.11,
-    "tp1": 9.47,
-    "tp2": 9.81,
-    "shares_total": 1203,
-    "shares_remaining": 1203,
-    "dollar_risk": 818.04,
-    "tp1_hit": false,
-    "tp2_hit": false,
-    "opened_at": "2026-08-20T09:27:55.365592-04:00",
-    "breakeven_set": false,
-    "stop_order_id": null
+    "stop_order_id": "6ae0eee7-f1c8-4fcc-b5da-ae0b7496d2eb"
   }
 }
