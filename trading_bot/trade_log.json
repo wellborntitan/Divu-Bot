@@ -161,5 +161,23 @@
     "price": 15.23,
     "shares": 174,
     "pnl": 273.18
+  },
+  {
+    "ts": "2026-08-21T09:30:09.686554-04:00",
+    "type": "tp1",
+    "symbol": "MSTR",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 118.395,
+    "shares": 22,
+    "pnl": 293.37
+  },
+  {
+    "ts": "2026-08-21T09:30:10.632172-04:00",
+    "type": "tp2",
+    "symbol": "BITX",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 17.095,
+    "shares": 348,
+    "pnl": 1195.38
   }
 ]
