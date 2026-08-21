@@ -1,12 +1,8 @@
 {
-  "date": "2026-08-20",
+  "date": "2026-08-21",
   "signals": [
     {
-      "symbol": "BITX",
-      "strategy": "Downtrend Trendline Reversal"
-    },
-    {
-      "symbol": "NVAX",
+      "symbol": "TSLA",
       "strategy": "Downtrend Trendline Reversal"
     }
   ]
