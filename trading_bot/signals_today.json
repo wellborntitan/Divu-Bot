@@ -1,9 +1,9 @@
 {
-  "date": "2026-08-21",
+  "date": "2026-08-24",
   "signals": [
     {
-      "symbol": "TSLA",
-      "strategy": "Downtrend Trendline Reversal"
+      "symbol": "ABNB",
+      "strategy": "Continuation Model (PRIMARY)"
     }
   ]
 }

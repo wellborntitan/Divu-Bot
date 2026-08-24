@@ -192,5 +192,27 @@
     "tp2": 380.16,
     "shares": 29,
     "dollar_risk": 426.01
+  },
+  {
+    "ts": "2026-08-24T10:05:00.556209-04:00",
+    "type": "tp2",
+    "symbol": "MSTR",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 122.61,
+    "shares": 44,
+    "pnl": 772.2
+  },
+  {
+    "ts": "2026-08-24T10:05:14.087847-04:00",
+    "type": "entry",
+    "symbol": "ABNB",
+    "strategy": "Continuation Model (PRIMARY)",
+    "signal_type": "long",
+    "price": 190.74,
+    "stop": 182.34,
+    "tp1": 199.14,
+    "tp2": 207.54,
+    "shares": 56,
+    "dollar_risk": 470.4
   }
 ]
