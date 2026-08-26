@@ -214,5 +214,15 @@
     "tp2": 207.54,
     "shares": 56,
     "dollar_risk": 470.4
+  },
+  {
+    "ts": "2026-08-26T09:38:32.210564-04:00",
+    "type": "closed_external",
+    "symbol": "TSLA",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 343.43,
+    "shares": 29,
+    "pnl": -426.01,
+    "estimated": true
   }
 ]
