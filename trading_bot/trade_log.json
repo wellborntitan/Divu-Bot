@@ -224,5 +224,15 @@
     "shares": 29,
     "pnl": -426.01,
     "estimated": true
+  },
+  {
+    "ts": "2026-08-31T15:13:58.387438-04:00",
+    "type": "closed_external",
+    "symbol": "ABNB",
+    "strategy": "Continuation Model (PRIMARY)",
+    "price": 182.34,
+    "shares": 56,
+    "pnl": -470.4,
+    "estimated": true
   }
 ]
