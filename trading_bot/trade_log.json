@@ -234,5 +234,14 @@
     "shares": 56,
     "pnl": -470.4,
     "estimated": true
+  },
+  {
+    "ts": "2026-09-02T15:50:00.419755-04:00",
+    "type": "ema_trail",
+    "symbol": "MSTR",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 122.915,
+    "shares": 23,
+    "pnl": 410.67
   }
 ]

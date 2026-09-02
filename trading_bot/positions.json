@@ -1,21 +1,4 @@
 {
-  "MSTR": {
-    "symbol": "MSTR",
-    "strategy": "Downtrend Trendline Reversal",
-    "signal_type": "long",
-    "entry": 105.06,
-    "stop": 105.06,
-    "tp1": 116.76,
-    "tp2": 122.61,
-    "shares_total": 89,
-    "shares_remaining": 23,
-    "dollar_risk": 1041.3,
-    "tp1_hit": true,
-    "tp2_hit": true,
-    "opened_at": "2026-08-19T11:35:11.031879-04:00",
-    "breakeven_set": true,
-    "stop_order_id": "721a9ecb-dbe8-4a57-a889-1d1a4af6ef13"
-  },
   "BITX": {
     "symbol": "BITX",
     "strategy": "Downtrend Trendline Reversal",
