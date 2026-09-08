@@ -243,5 +243,14 @@
     "price": 122.915,
     "shares": 23,
     "pnl": 410.67
+  },
+  {
+    "ts": "2026-09-08T15:50:00.386039-04:00",
+    "type": "ema_trail",
+    "symbol": "BITX",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 17.57,
+    "shares": 173,
+    "pnl": 676.43
   }
 ]
