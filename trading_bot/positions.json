@@ -1,1 +1,19 @@
-{}
+{
+  "ORCL": {
+    "symbol": "ORCL",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "entry": 152.28,
+    "stop": 148.95,
+    "tp1": 155.61,
+    "tp2": 157.28,
+    "shares_total": 70,
+    "shares_remaining": 70,
+    "dollar_risk": 233.1,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "opened_at": "2026-09-11T13:15:13.382031-04:00",
+    "breakeven_set": false,
+    "stop_order_id": null
+  }
+}

@@ -252,5 +252,18 @@
     "price": 17.57,
     "shares": 173,
     "pnl": 676.43
+  },
+  {
+    "ts": "2026-09-11T13:15:13.382580-04:00",
+    "type": "entry",
+    "symbol": "ORCL",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "price": 152.28,
+    "stop": 148.95,
+    "tp1": 155.61,
+    "tp2": 157.28,
+    "shares": 70,
+    "dollar_risk": 233.1
   }
 ]
