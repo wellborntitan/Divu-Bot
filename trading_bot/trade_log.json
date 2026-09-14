@@ -265,5 +265,15 @@
     "tp2": 157.28,
     "shares": 70,
     "dollar_risk": 233.1
+  },
+  {
+    "ts": "2026-09-14T14:10:50.406643-04:00",
+    "type": "closed_external",
+    "symbol": "ORCL",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 148.95,
+    "shares": 70,
+    "pnl": -233.1,
+    "estimated": true
   }
 ]
