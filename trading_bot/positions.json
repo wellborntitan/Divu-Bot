@@ -1,1 +1,19 @@
-{}
+{
+  "BB": {
+    "symbol": "BB",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "entry": 8.68,
+    "stop": 7.85,
+    "tp1": 9.51,
+    "tp2": 9.93,
+    "shares_total": 1245,
+    "shares_remaining": 1245,
+    "dollar_risk": 1033.35,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "opened_at": "2026-09-24T13:27:40.968337-04:00",
+    "breakeven_set": false,
+    "stop_order_id": null
+  }
+}

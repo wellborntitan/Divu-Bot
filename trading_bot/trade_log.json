@@ -275,5 +275,18 @@
     "shares": 70,
     "pnl": -233.1,
     "estimated": true
+  },
+  {
+    "ts": "2026-09-24T13:27:40.968994-04:00",
+    "type": "entry",
+    "symbol": "BB",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "price": 8.68,
+    "stop": 7.85,
+    "tp1": 9.51,
+    "tp2": 9.93,
+    "shares": 1245,
+    "dollar_risk": 1033.35
   }
 ]
