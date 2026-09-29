@@ -15,5 +15,22 @@
     "opened_at": "2026-09-24T13:27:40.968337-04:00",
     "breakeven_set": false,
     "stop_order_id": "edf015ba-35fc-4711-ae55-a7066528f10e"
+  },
+  "NVTS": {
+    "symbol": "NVTS",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "entry": 11.84,
+    "stop": 11.55,
+    "tp1": 12.13,
+    "tp2": 12.27,
+    "shares_total": 907,
+    "shares_remaining": 907,
+    "dollar_risk": 263.03,
+    "tp1_hit": false,
+    "tp2_hit": false,
+    "opened_at": "2026-09-29T14:12:48.643228-04:00",
+    "breakeven_set": false,
+    "stop_order_id": null
   }
 }
