@@ -301,5 +301,15 @@
     "tp2": 12.27,
     "shares": 907,
     "dollar_risk": 263.03
+  },
+  {
+    "ts": "2026-09-30T14:07:13.807040-04:00",
+    "type": "closed_external",
+    "symbol": "NVTS",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 11.55,
+    "shares": 907,
+    "pnl": -263.03,
+    "estimated": true
   }
 ]
