@@ -320,5 +320,14 @@
     "price": 9.58,
     "shares": 311,
     "pnl": 279.9
+  },
+  {
+    "ts": "2026-10-07T15:50:01.698248-04:00",
+    "type": "ema_trail",
+    "symbol": "BB",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 8.805,
+    "shares": 934,
+    "pnl": 116.75
   }
 ]
