@@ -329,5 +329,18 @@
     "price": 8.805,
     "shares": 934,
     "pnl": 116.75
+  },
+  {
+    "ts": "2026-11-05T15:11:53.769144-05:00",
+    "type": "entry",
+    "symbol": "GENI",
+    "strategy": "Downtrend Trendline Reversal",
+    "signal_type": "long",
+    "price": 5.89,
+    "stop": 5.67,
+    "tp1": 6.11,
+    "tp2": 6.22,
+    "shares": 1816,
+    "dollar_risk": 399.52
   }
 ]
