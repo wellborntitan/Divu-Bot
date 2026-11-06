@@ -342,5 +342,15 @@
     "tp2": 6.22,
     "shares": 1816,
     "dollar_risk": 399.52
+  },
+  {
+    "ts": "2026-11-06T14:40:44.438276-05:00",
+    "type": "closed_external",
+    "symbol": "GENI",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 5.67,
+    "shares": 1816,
+    "pnl": -399.52,
+    "estimated": true
   }
 ]
