@@ -1,8 +1,8 @@
 {
-  "date": "2026-11-05",
+  "date": "2026-11-16",
   "signals": [
     {
-      "symbol": "GENI",
+      "symbol": "BXDC",
       "strategy": "Downtrend Trendline Reversal"
     }
   ]
