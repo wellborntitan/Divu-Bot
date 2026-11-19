@@ -365,5 +365,15 @@
     "tp2": 17.16,
     "shares": 625,
     "dollar_risk": 175.0
+  },
+  {
+    "ts": "2026-11-19T15:57:35.014543-05:00",
+    "type": "closed_external",
+    "symbol": "BXDC",
+    "strategy": "Downtrend Trendline Reversal",
+    "price": 16.46,
+    "shares": 625,
+    "pnl": -175.0,
+    "estimated": true
   }
 ]
